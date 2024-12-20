@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Wallet Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+            text-align: center;
+        }
+        .form-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        form {
+            display: inline-block;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .direction-entrata {
+            color: green;
+            font-weight: bold;
+        }
+        .direction-uscita {
+            color: red;
+            font-weight: bold;
+        }
+        .centered-chart {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .charts-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .chart {
+            flex: 0 0 48%;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .download-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .download-links a {
+            margin: 0 10px;
+            color: #007BFF;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .download-links a:hover {
+            text-decoration: underline;
+        }
+        .filter-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .search-history {
+            position: relative;
+        }
+        .history-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            list-style: none;
+            padding: 10px;
+            width: 200px;
+            z-index: 10;
+        }
+        .history-dropdown li {
+            margin: 5px 0;
+        }
+        .history-dropdown li a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        .history-dropdown li a:hover {
+            text-decoration: underline;
+        }
+        .show-history {
+            display: block;
+        }
+    </style>
+    <script>
+        function toggleHistoryDropdown() {
+            const dropdown = document.getElementById('historyDropdown');
+            dropdown.classList.toggle('show-history');
+        }
+    </script>
+</head>
+<body>
+    <h1>Bitcoin Wallet Tracker</h1>
+    <div class="form-container">
+        <form method="POST">
+            <label for="wallet_address">Inserisci l'indirizzo del wallet Bitcoin:</label>
+            <input type="text" id="wallet_address" name="wallet_address" required>
+            <button type="submit">Traccia</button>
+        </form>
+        <div class="search-history">
+            <button onclick="toggleHistoryDropdown()">Cronologia</button>
+            <ul id="historyDropdown" class="history-dropdown">
+                {% for wallet in history %}
+                <li><a href="/?wallet_address={{ wallet }}">{{ wallet }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {% if wallet_address %}
+        <h2>Risultati per il wallet: {{ wallet_address }}</h2>
+
+        <div class="filter-container">
+            <form method="GET">
+                <input type="hidden" name="wallet_address" value="{{ wallet_address }}">
+                <label for="filter_direction">Direzione:</label>
+                <select name="filter_direction" id="filter_direction">
+                    <option value="">Tutte</option>
+                    <option value="Entrata" {% if request.args.get('filter_direction') == 'Entrata' %}selected{% endif %}>Entrata</option>
+                    <option value="Uscita" {% if request.args.get('filter_direction') == 'Uscita' %}selected{% endif %}>Uscita</option>
+                </select>
+
+                <label for="filter_price">Prezzo:</label>
+                <select name="filter_price" id="filter_price">
+                    <option value="">Tutti</option>
+                    <option value="0-10" {% if request.args.get('filter_price') == '0-10' %}selected{% endif %}>da 0€ a 10€</option>
+                    <option value="10-50" {% if request.args.get('filter_price') == '10-50' %}selected{% endif %}>da 10€ a 50€</option>
+                    <option value="50-100" {% if request.args.get('filter_price') == '50-100' %}selected{% endif %}>da 50€ a 100€</option>
+                    <option value="100-300" {% if request.args.get('filter_price') == '100-300' %}selected{% endif %}>da 100€ a 300€</option>
+                    <option value="300-500" {% if request.args.get('filter_price') == '300-500' %}selected{% endif %}>da 300€ a 500€</option>
+                    <option value="500-1000" {% if request.args.get('filter_price') == '500-1000' %}selected{% endif %}>da 500€ a 1000€</option>
+                    <option value="1000+" {% if request.args.get('filter_price') == '1000+' %}selected{% endif %}>1000€ e oltre</option>
+                </select>
+
+
+                <label for="start_date">Data Inizio:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ request.args.get('start_date') }}">
+                <label for="end_date">Data Fine:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ request.args.get('end_date') }}">
+                <button type="submit">Filtra</button>
+            </form>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Hash</th>
+                    <th>Data</th>
+                    <th>Direzione</th>
+                    <th>Importo (BTC)</th>
+                    <th>Importo (EUR)</th>
+                    <th>Conferme</th>
+                    <th>Explorer</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.hash }}</td>
+                    <td>{{ tx.time | timestamp_to_date }}</td>
+                    <td class="direction-{{ tx.direction | lower }}">{{ tx.direction }}</td>
+                    <td>{{ "%.8f"|format(tx.value_btc) }}</td>
+                    <td>{{ "%.2f"|format(tx.value_eur) }}</td>
+                    <td>{{ tx.confirmations }}</td>
+                    <td><a href="{{ tx.explorer_link }}" target="_blank">Vedi</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="centered-chart">
+            <h3>Flussi Combinati di Bitcoin</h3>
+            <img src="{{ combined_graph }}" alt="Grafico dei flussi combinati">
+        </div>
+        <div class="charts-container">
+            <div class="chart">
+                <h3>Entrate di Bitcoin</h3>
+                <img src="{{ inflow_graph }}" alt="Grafico delle entrate">
+            </div>
+            <div class="chart">
+                <h3>Uscite di Bitcoin</h3>
+                <img src="{{ outflow_graph }}" alt="Grafico delle uscite">
+            </div>
+        </div>
+
+        {% if cluster_message %}
+        <div style="text-align: center; margin-top: 20px;">
+            <h3>{{ cluster_message }}</h3>
+        </div>
+        {% endif %}
+
+        <div class="download-links">
+            <h3>Scarica i Dati</h3>
+            <a href="/download_docx">Scarica Word</a>
+            <a href="/download_excel">Scarica Excel</a>
+        </div>
+    {% endif %}
+</body>
+</html>
